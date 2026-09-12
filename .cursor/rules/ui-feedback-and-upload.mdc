@@ -1,0 +1,96 @@
+---
+description: Feedback observável, progresso honesto, recuperação no lugar e filas independentes em uploads e UI assíncrona.
+alwaysApply: true
+---
+
+# UI Feedback, Progress, and Recovery
+
+Apply this rule when building or reviewing upload interfaces and asynchronous interactions (saves, imports, exports, generation). Treat observable feedback, truthful status, recovery, and user control as acceptance criteria. For work with no async or file interaction, do not add upload chrome.
+
+Follow the existing product design system. The reference illustrates behavior; it does not prescribe a dark theme, glowing borders, teal accents, or a particular layout. Inspect existing components, state, transport, and backend first. Reuse established patterns. Do not add unrelated features or redesign the whole application.
+
+## 1. Respond immediately to drag interactions
+
+A user dragging a file over a valid target must be able to tell that the interface recognizes the action and what will happen next.
+
+- Give the drop zone a distinct drag-over state: visible boundary or surface change plus an icon or text change.
+- Replace idle instructions with an action-specific message such as “Solte para enviar” when the target can accept the drop.
+- Show available file information when the browser exposes it. Do not claim validation succeeded before required metadata is available.
+- Explain rejected files with a specific reason (unsupported format, size limit). Display accepted formats and size limits before selection.
+- Restore the correct state when dragging leaves the target or completes. Avoid flicker across nested elements.
+- Always offer a labeled file picker as an alternative to dragging. Support keyboard and touch.
+
+## 2. Show honest progress
+
+Users should understand what is happening and have enough information to decide whether to wait.
+
+- Use determinate progress only from real progress events or reported job status.
+- Never invent percentages, advance progress with a timer, or display a fictional countdown in production.
+- When progress cannot be measured, use an indeterminate indicator with a specific status such as “Enviando…” or “Processando documento…”.
+- Show estimated time remaining only when it can be reasonably calculated. Mark it as approximate.
+- Distinguish uploading from later processing, validation, or saving. Sending all bytes is not success.
+- Show success only after the system confirms the intended result. If processing continues, display that phase explicitly.
+- Keep status attached to the affected item. Do not block the whole interface for an independent operation.
+- Never imply that closing the page is safe unless the operation actually survives it.
+
+## 3. Make failures recoverable in place
+
+An error should preserve the user's work and provide a clear next action.
+
+- Show the error within or next to the affected file row or component. A toast must not be the only record of failure.
+- Preserve the selected file and metadata for retry. Do not clear the entire selection after a recoverable failure.
+- Explain the failure in plain language and offer Retry, Choose another file, or Sign in again as appropriate.
+- Retry only the failed operation. Do not resubmit completed items or reset unrelated fields.
+- Resume from confirmed transferred data only when the protocol and backend support it. Otherwise retry from the beginning and say so.
+- Never present a restarted request as “Retomando de 90%”. Do not imply a file survives a reload if it exists only in memory.
+- Guard repeated retry while a request is active. Prevent late responses and duplicate submissions from corrupting state.
+- Provide cancellation where supported and distinguish cancellation from failure.
+
+## 4. Provide recognizable file previews and confirmation
+
+Users should be able to verify that they selected the intended file and that it reached the intended state.
+
+- Show a real thumbnail for supported visual files when practical. Otherwise use a type icon and metadata.
+- Display filename, type, and human-readable size. Keep enough of long names visible; make the full name accessible.
+- Separate local selection preview from confirmed upload success. A thumbnail is not evidence the server stored the file.
+- Make completion explicit through text and an icon, not color alone.
+- Offer Replace, Remove, or Open when the product supports them. Clarify whether Remove only drops the selection or deletes a stored file.
+- Keep a metadata fallback when preview generation fails. Clean up temporary preview resources.
+
+## 5. Keep batch uploads independent
+
+Every file needs its own lifecycle, progress, result, and recovery path.
+
+- Track each item with a stable identifier and its own state. Do not use filenames as unique identifiers.
+- Represent states explicitly: queued, uploading, processing when applicable, succeeded, failed, canceled. Expose paused only if real pause exists.
+- One file's failure must not stop unrelated files unless the batch is explicitly atomic.
+- Allow retrying or removing a failed item without restarting successful uploads.
+- Show progress and errors per item, plus an accurate batch summary such as “4 enviados, 1 falhou”. Never call a partial failure fully successful.
+- Use controlled concurrency. Keep waiting items visibly queued.
+- Preserve successful results during partial failure. Prevent duplicate server records through the existing API.
+
+## Other asynchronous UI
+
+For saves, imports, exports, and generation, transfer the relevant behavior: acknowledge promptly, show the actual stage, keep input after recoverable failures, put recovery next to the failure, confirm the outcome, isolate independent work. Do not force upload controls or progress bars into interactions that do not need them.
+
+## Accessibility and implementation
+
+- Use semantic controls, visible focus, accessible names, and keyboard-operable actions.
+- Announce important status changes, not every percentage update.
+- Do not rely only on color, glow, hover, or animation to communicate state.
+- Respect reduced-motion. Use motion to clarify transitions without delaying actions.
+- Keep component state consistent with actual requests. Handle cancellation, cleanup, and stale responses.
+- Use concise, actionable copy in Portuguese (pt-BR). English examples in this rule are illustrative.
+
+## Completion review
+
+Before declaring the feature complete, verify:
+
+- Drag enter, drag leave, valid drop, and rejected selection.
+- File picker, keyboard interaction, and narrow-screen behavior.
+- Slow transfer, unavailable progress, processing, and confirmed success.
+- Failure near completion, retained selection, and truthful retry or resume.
+- Multiple files with one failure while others complete.
+- Preview failure, long filenames, and removal or replacement where implemented.
+
+Report any backend limitation that prevents a requested behavior. In prototypes, identify simulated behavior explicitly. Never conceal a missing capability behind a polished animation.
